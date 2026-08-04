@@ -86,7 +86,7 @@ images/                           PNG pour le README
 
 **AvantGarde Bk BT** est la version Bitstream de l'ITC Avant Garde Gothic Book,
 une sans empattement géométrique de Herb Lubalin. Police **commerciale
-propriétaire** — copyright Bitstream Inc. / Monotype. Utilisation commerciale
+propriétaire**, copyright Bitstream Inc. / Monotype. Utilisation commerciale
 uniquement avec licence achetée (MyFonts, Fonts.com).
 
 ⚠️ Les sites proposant un « téléchargement gratuit » ne sont **pas légitimes**.
@@ -95,12 +95,12 @@ uniquement avec licence achetée (MyFonts, Fonts.com).
 
 **TeX Gyre Adventor** est une reprise libre (GUST e-foundry) de la famille
 URW Gothic / Avant Garde. Distribuée sous la **GUST Font License** (LPPL). Les
-œuvres dérivées doivent être renommées — d'où **Adventor SlashV**.
+œuvres dérivées doivent être renommées, d'où **Adventor SlashV**.
 
 ## Licence
 
 - **Code** (scripts) : MIT.
-- **AvantGarde SlashV** : œuvre dérivée d'une police propriétaire — usage
+- **AvantGarde SlashV** : œuvre dérivée d'une police propriétaire, usage
   interne seulement, **ne pas redistribuer**.
 - **Adventor SlashV** : dérivée sous GUST/LPPL, redistribuable si le nom
   reste distinct de TeX Gyre Adventor (déjà le cas).
