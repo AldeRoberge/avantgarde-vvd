@@ -1,115 +1,134 @@
 # avantgarde-vvd
 
-Outil Python qui modifie **AvantGarde Bk BT** pour que le **V** majuscule
-suive le logotype de la Ville de Val-d'Or : un trait gauche **vertical**
-joint à une diagonale inclinée vers la droite.
+Outil Python qui réécrit le **V** majuscule pour suivre le logotype de la
+Ville de Val-d'Or : un trait gauche **vertical** joint à une diagonale
+inclinée vers la droite.
 
-![Ville de Val-d'Or](images/demo.png)
+Deux familles sources sont prises en charge :
+
+| Source | Famille générée | Licence source |
+| ------ | --------------- | -------------- |
+| **AvantGarde Bk BT** | AvantGarde SlashV | propriétaire (Bitstream / Monotype) |
+| **TeX Gyre Adventor** | Adventor SlashV | GUST Font License (LPPL) |
+
+![AvantGarde SlashV](images/demo_avant_garde.png)
+
+![Adventor SlashV](images/demo_adventor.png)
 
 ## Ce que ça fait
 
-Dans la police d'origine, les deux bras du **V** sont en diagonale. Cet outil
+Dans les polices d'origine, les deux bras du **V** sont en diagonale. Cet outil
 réécrit le glyphe `V` ainsi :
 
 - le **trait gauche est vertical** (graisse calquée sur le `I` de la police)
 - le **trait droit conserve son angle montant**, légèrement accentué vers la droite
 - les deux traits ont la même largeur en tête et se rejoignent en un seul V
 
-La famille générée s'appelle **AvantGarde SlashV**, pour cohabiter avec
-l'AvantGarde d'origine. Trois styles sont produits :
+### AvantGarde SlashV
 
-| Fichier source  | Style         | Sortie                              |
-| --------------- | ------------- | ----------------------------------- |
-| `AVGARDN.TTF`   | Book          | `fonts/AvantGardeSlashV-Book.ttf`   |
-| `AVGARDD.TTF`   | Demi          | `fonts/AvantGardeSlashV-Demi.ttf`   |
-| `AVGARDDO.TTF`  | Demi Oblique  | `fonts/AvantGardeSlashV-DemiOblique.ttf` |
+| Fichier source | Style | Sortie |
+| -------------- | ----- | ------ |
+| `AVGARDN.TTF` | Book | `fonts/AvantGardeSlashV-Book.ttf` |
+| `AVGARDD.TTF` | Demi | `fonts/AvantGardeSlashV-Demi.ttf` |
+| `AVGARDDO.TTF` | Demi Oblique | `fonts/AvantGardeSlashV-DemiOblique.ttf` |
 
-![V d'origine vs V personnalisé](images/preview_V.png)
+### Adventor SlashV
+
+| Fichier source | Style | Sortie |
+| -------------- | ----- | ------ |
+| `texgyreadventor-regular.otf` | Regular | `fonts/AdventorSlashV-Regular.ttf` |
+| `texgyreadventor-bold.otf` | Bold | `fonts/AdventorSlashV-Bold.ttf` |
+| `texgyreadventor-italic.otf` | Italic | `fonts/AdventorSlashV-Italic.ttf` |
+| `texgyreadventor-bolditalic.otf` | Bold Italic | `fonts/AdventorSlashV-BoldItalic.ttf` |
+
+Les OTF Adventor (CFF) sont convertis automatiquement en TrueType avant
+modification.
 
 ## Prérequis
 
 - Python 3.10+
-- [fontTools](https://github.com/fonttools/fonttools) et [Pillow](https://python-pillow.org) (pour les images d'aperçu)
-- Une copie **licenciée** d'AvantGarde Bk BT installée sur la machine
-  (Book / Demi / Demi Oblique — en général `AVGARDN.TTF`, `AVGARDD.TTF`,
-  `AVGARDDO.TTF` dans le dossier des polices utilisateur Windows)
+- [fontTools](https://github.com/fonttools/fonttools) et [Pillow](https://python-pillow.org)
 
 ```bash
 pip install -r requirements.txt
 ```
 
+**AvantGarde** (propriétaire) : placer vos fichiers licenciés dans
+`source/avantgarde/`. À défaut, le script cherche dans les polices utilisateur
+Windows.
+
+**Adventor** : déjà fourni dans `source/tex-gyre-adventor/` (licence GUST).
+
 ## Utilisation
 
-Générer les polices modifiées (lit les fichiers AvantGarde installés, écrit
-dans `fonts/`) :
+Double-clic Windows (à la racine du dépôt) :
+
+| Fichier | Action |
+| ------- | ------ |
+| `build_and_install.bat` | **Un clic** : génère puis installe les deux familles |
+| `build.bat` | Génère les TTF dans `fonts/` |
+| `install.bat` | Installe les TTF pour l'utilisateur Windows courant |
+| `make_demos.bat` | Régénère les PNG dans `images/` |
+
+En ligne de commande :
 
 ```bash
-python scripts/make_font.py
+python scripts/make_font.py              # les deux familles
+python scripts/make_font.py avantgarde   # AvantGarde seulement
+python scripts/make_font.py adventor     # Adventor seulement
 ```
 
-L'inclinaison du trait droit est réglée par `EXTRA_ANGLE` en tête de
-`scripts/make_font.py` (actuellement `+8` degrés par rapport à l'original).
+Sortie très détaillée par défaut (DEBUG). Mode court : `-q`.
+Inclinaison : `--angle 8`.
 
 ### Installation sous Windows
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/install_fonts.ps1
+powershell -ExecutionPolicy Bypass -File scripts/install_fonts.ps1 -Family Adventor
 ```
-
-Installe pour l'utilisateur courant (pas besoin d'admin). Redémarrez les
-applications qui avaient déjà chargé la police pour qu'elles prennent les
-nouveaux fichiers.
 
 ### Images d'aperçu
 
 ```bash
-python scripts/demo.py            # feuille d'échantillon complète
-python scripts/preview.py         # original vs personnalisé, toutes les graisses
-python scripts/angle_options.py   # comparaison des inclinaisons du trait droit
+python scripts/demo_avant_garde.py
+python scripts/demo_adventor.py
+python scripts/preview.py
+python scripts/angle_options.py
 ```
-
-Les PNG sont enregistrés dans `images/`.
 
 ## Structure du projet
 
 ```
-fonts/          TTF générés (livrable — ne pas redistribuer)
-scripts/        Générateur, installateur Windows, rendu des aperçus
-images/         Aperçus PNG pour le README
+source/avantgarde/           AvantGarde d'origine (*.ttf gitignorés)
+source/tex-gyre-adventor/    TeX Gyre Adventor + licence GUST
+fonts/                       TTF générés
+scripts/                     Générateur, installateur, aperçus
+images/                      PNG pour le README
 ```
 
 ## AvantGarde Bk BT
 
-**AvantGarde Bk BT** est la version Bitstream (BT = Bitstream) de l'ITC
-Avant Garde Gothic graisse Book (Bk = Book), une sans empattement géométrique
-dessinée à l'origine par Herb Lubalin. C'est une **police commerciale
-propriétaire**, ni libre ni open source — copyright Bitstream Inc. / Monotype,
-tous droits réservés. Elle ne peut être utilisée à des fins commerciales
-qu'avec une licence achetée, et est disponible sur fonts.com ou myfonts.com.
-Elle ne peut pas être légalement regroupée, redistribuée ou intégrée sans la
-licence adéquate ; les conditions varient selon l'usage (bureau, web,
-application ou livre numérique).
+**AvantGarde Bk BT** est la version Bitstream de l'ITC Avant Garde Gothic Book,
+une sans empattement géométrique de Herb Lubalin. Police **commerciale
+propriétaire** — copyright Bitstream Inc. / Monotype. Utilisation commerciale
+uniquement avec licence achetée (MyFonts, Fonts.com).
 
-⚠️ De nombreux sites (blogfonts, font.download, cufonfonts, onlinewebfonts) la
-proposent en « téléchargement gratuit », mais ce ne sont **pas des sources
-légitimes** — la police est protégée par le droit d'auteur et commerciale, et
-la redistribution gratuite n'est pas autorisée.
+⚠️ Les sites proposant un « téléchargement gratuit » ne sont **pas légitimes**.
 
-### Où l'acquérir
+## TeX Gyre Adventor
 
-- [MyFonts](https://www.myfonts.com) — marketplace Monotype (vérifier l'EULA et le tarif en vigueur)
-- [Fonts.com](https://www.fonts.com) — propose aussi le catalogue Bitstream
+**TeX Gyre Adventor** est une reprise libre (GUST e-foundry) de la famille
+URW Gothic / Avant Garde. Distribuée sous la **GUST Font License** (LPPL). Les
+œuvres dérivées doivent être renommées — d'où **Adventor SlashV**.
 
 ## Licence
 
-AvantGarde Bk BT est une **police commerciale propriétaire**. Vous devez déjà
-posséder une licence valide pour l'utiliser. Les polices produites par cet
-outil sont des **œuvres dérivées** de cette fonte — **réservez-les à un usage
-interne et ne les redistribuez pas**. Ne déposez pas les TTF générés dans un
-dépôt public si votre licence l'interdit.
-
-Le code de ce dépôt est sous licence MIT. Cela couvre uniquement les scripts,
-pas la police qu'ils modifient ni les fichiers qu'ils produisent.
+- **Code** (scripts) : MIT.
+- **AvantGarde SlashV** : œuvre dérivée d'une police propriétaire — usage
+  interne seulement, **ne pas redistribuer**.
+- **Adventor SlashV** : dérivée sous GUST/LPPL, redistribuable si le nom
+  reste distinct de TeX Gyre Adventor (déjà le cas).
 
 ## Avertissement
 
