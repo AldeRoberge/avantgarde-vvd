@@ -15,8 +15,6 @@ Deux familles sources sont prises en charge :
 | ----------------- | --------------- |
 | ![AvantGarde SlashV](images/demo_avant_garde.png) | ![Adventor SlashV](images/demo_adventor.png) |
 
-![AvantGarde vs Adventor](images/demo_compare.png)
-
 ## Ce que ça fait
 
 Dans les polices d'origine, les deux bras du **V** sont en diagonale. Cet outil
@@ -26,22 +24,15 @@ réécrit le glyphe `V` ainsi :
 - le **trait droit conserve son angle montant**, légèrement accentué vers la droite
 - les deux traits ont la même largeur en tête et se rejoignent en un seul V
 
-### AvantGarde SlashV
-
-| Fichier source | Style | Sortie |
-| -------------- | ----- | ------ |
-| `AVGARDN.TTF` | Book | `fonts/AvantGardeSlashV-Book.ttf` |
-| `AVGARDD.TTF` | Demi | `fonts/AvantGardeSlashV-Demi.ttf` |
-| `AVGARDDO.TTF` | Demi Oblique | `fonts/AvantGardeSlashV-DemiOblique.ttf` |
-
-### Adventor SlashV
-
-| Fichier source | Style | Sortie |
-| -------------- | ----- | ------ |
-| `texgyreadventor-regular.otf` | Regular | `fonts/AdventorSlashV-Regular.ttf` |
-| `texgyreadventor-bold.otf` | Bold | `fonts/AdventorSlashV-Bold.ttf` |
-| `texgyreadventor-italic.otf` | Italic | `fonts/AdventorSlashV-Italic.ttf` |
-| `texgyreadventor-bolditalic.otf` | Bold Italic | `fonts/AdventorSlashV-BoldItalic.ttf` |
+| Famille | Fichier source | Style | Sortie |
+| ------- | -------------- | ----- | ------ |
+| AvantGarde SlashV | `AVGARDN.TTF` | Book | `fonts/output/AvantGardeSlashV-Book.ttf` |
+| AvantGarde SlashV | `AVGARDD.TTF` | Demi | `fonts/output/AvantGardeSlashV-Demi.ttf` |
+| AvantGarde SlashV | `AVGARDDO.TTF` | Demi Oblique | `fonts/output/AvantGardeSlashV-DemiOblique.ttf` |
+| Adventor SlashV | `texgyreadventor-regular.otf` | Regular | `fonts/output/AdventorSlashV-Regular.ttf` |
+| Adventor SlashV | `texgyreadventor-bold.otf` | Bold | `fonts/output/AdventorSlashV-Bold.ttf` |
+| Adventor SlashV | `texgyreadventor-italic.otf` | Italic | `fonts/output/AdventorSlashV-Italic.ttf` |
+| Adventor SlashV | `texgyreadventor-bolditalic.otf` | Bold Italic | `fonts/output/AdventorSlashV-BoldItalic.ttf` |
 
 Les OTF Adventor (CFF) sont convertis automatiquement en TrueType avant
 modification.
@@ -56,10 +47,10 @@ pip install -r requirements.txt
 ```
 
 **AvantGarde** (propriétaire) : placer vos fichiers licenciés dans
-`source/avantgarde/`. À défaut, le script cherche dans les polices utilisateur
+`fonts/input/avantgarde/`. À défaut, le script cherche dans les polices utilisateur
 Windows.
 
-**Adventor** : déjà fourni dans `source/tex-gyre-adventor/` (licence GUST).
+**Adventor** : déjà fourni dans `fonts/input/tex-gyre-adventor/` (licence GUST).
 
 ## Utilisation
 
@@ -74,9 +65,6 @@ python scripts/make_font.py avantgarde   # AvantGarde seulement
 python scripts/make_font.py adventor     # Adventor seulement
 ```
 
-Sortie claire par défaut (info). Détails de debug : `-v` / `--verbose`.
-Inclinaison : `--angle 8`.
-
 ### Installation sous Windows
 
 ```powershell
@@ -84,24 +72,14 @@ powershell -ExecutionPolicy Bypass -File scripts/install_fonts.ps1
 powershell -ExecutionPolicy Bypass -File scripts/install_fonts.ps1 -Family Adventor
 ```
 
-### Images d'aperçu
-
-```bash
-python scripts/demo_avant_garde.py
-python scripts/demo_adventor.py
-python scripts/demo_compare.py        # AvantGarde vs Adventor side by side
-python scripts/preview.py
-python scripts/angle_options.py
-```
-
 ## Structure du projet
 
 ```
-source/avantgarde/           AvantGarde d'origine (*.ttf gitignorés)
-source/tex-gyre-adventor/    TeX Gyre Adventor + licence GUST
-fonts/                       TTF générés
-scripts/                     Générateur, installateur, aperçus
-images/                      PNG pour le README
+fonts/input/avantgarde/           AvantGarde d'origine (*.ttf gitignorés)
+fonts/input/tex-gyre-adventor/    TeX Gyre Adventor + licence GUST
+fonts/output/                     TTF générés
+scripts/                          Générateur, installateur, aperçus
+images/                           PNG pour le README
 ```
 
 ## AvantGarde Bk BT

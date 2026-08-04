@@ -7,8 +7,9 @@ venv/
 .DS_Store
 Thumbs.db
 scripts/_angles/
+
 # Proprietary AvantGarde sources — keep local only
-source/avantgarde/*.ttf
-source/avantgarde/*.otf
-source/avantgarde/*.TTF
-source/avantgarde/*.OTF
+fonts/input/avantgarde/*.ttf
+fonts/input/avantgarde/*.otf
+fonts/input/avantgarde/*.TTF
+fonts/input/avantgarde/*.OTF

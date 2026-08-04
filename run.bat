@@ -50,7 +50,7 @@ if errorlevel 1 goto :fail
 echo.
 echo ============================================================
 echo  You're all set.
-echo    Fonts:   fonts\  ^(also installed for this user^)
+echo    Fonts:   fonts\output\  ^(also installed for this user^)
 echo    Previews: images\
 echo    Families: AvantGarde SlashV, Adventor SlashV
 echo  Restart Word / Illustrator / etc. if they were already open.

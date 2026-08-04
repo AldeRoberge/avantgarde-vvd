@@ -4,4 +4,4 @@
 #   AVGARDD.TTF   Demi
 #   AVGARDDO.TTF  Demi Oblique
 #
-# Proprietary — do not commit or redistribute. gitignored via source/avantgarde/*.ttf
+# Proprietary — do not commit or redistribute. gitignored via fonts/input/avantgarde/*.ttf

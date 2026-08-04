@@ -29,7 +29,7 @@ function Write-Log {
 }
 
 $root = Split-Path $PSScriptRoot -Parent
-$outDir = Join-Path $root "fonts"
+$outDir = Join-Path $root "fonts\output"
 $fontDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
 $regKey = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
 
@@ -40,7 +40,7 @@ Write-Log -Level INFO -Message ("Looking for built fonts in: {0}" -f $outDir)
 Write-Log -Level INFO -Message ("They will be installed to: {0}" -f $fontDir)
 
 if (-not (Test-Path $outDir)) {
-    Write-Log -Level ERROR -Message "I can't find the fonts/ folder. Build first with run.bat (or: python scripts/make_font.py)."
+    Write-Log -Level ERROR -Message "I can't find the fonts/output/ folder. Build first with run.bat (or: python scripts/make_font.py)."
     throw "Missing fonts directory"
 }
 

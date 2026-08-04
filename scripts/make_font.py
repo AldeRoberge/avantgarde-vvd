@@ -26,9 +26,10 @@ from logutil import log_path, set_verbose, setup_logging
 log = setup_logging("make_font")
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SOURCE_ROOT = os.path.join(ROOT, "source")
+FONTS_ROOT = os.path.join(ROOT, "fonts")
+SOURCE_ROOT = os.path.join(FONTS_ROOT, "input")
 SYSTEM_FONTS = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft", "Windows", "Fonts")
-OUT_DIR = os.path.join(ROOT, "fonts")
+OUT_DIR = os.path.join(FONTS_ROOT, "output")
 
 # Default extra slant (degrees) past each face's original right-stroke angle.
 EXTRA_ANGLE = 8.0
@@ -88,7 +89,7 @@ def family_source_dir(family: Family) -> str:
 def resolve_source(filename: str, family: Optional[Family] = None) -> str:
     """Resolve a source font path.
 
-    Prefer ``source/<family>/file``. For AvantGarde, also fall back to the
+    Prefer ``fonts/input/<family>/file``. For AvantGarde, also fall back to the
     Windows user fonts folder. If *family* is omitted (legacy callers), try
     AvantGarde locations then Adventor.
     """
@@ -114,7 +115,7 @@ def resolve_source(filename: str, family: Optional[Family] = None) -> str:
         if exists:
             if label.startswith("system"):
                 log.warning(
-                    "Couldn't find %s in the project's source folder, "
+                    "Couldn't find %s in fonts/input/, "
                     "so I'm using the copy installed on Windows: %s",
                     filename,
                     path,
