@@ -3,27 +3,32 @@ setlocal
 cd /d "%~dp0"
 
 echo ============================================================
-echo  avantgarde-vvd  -  regenerate preview PNGs
+echo  SlashV - regenerate preview PNGs
 echo ============================================================
 echo.
 
 where python >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] python not found on PATH.
+    echo Oops - Python was not found on your PATH.
     goto :fail
 )
 
-echo [1/3] demo_avant_garde.py
+echo [1/4] demo_avant_garde.py
 python scripts\demo_avant_garde.py
 if errorlevel 1 goto :fail
 
 echo.
-echo [2/3] demo_adventor.py
+echo [2/4] demo_adventor.py
 python scripts\demo_adventor.py
 if errorlevel 1 goto :fail
 
 echo.
-echo [3/3] preview.py
+echo [3/4] demo_compare.py
+python scripts\demo_compare.py
+if errorlevel 1 goto :fail
+
+echo.
+echo [4/4] preview.py
 python scripts\preview.py
 if errorlevel 1 goto :fail
 
@@ -36,7 +41,7 @@ goto :done
 :fail
 echo.
 echo ------------------------------------------------------------
-echo  Preview generation FAILED. Scroll up for details.
+echo  Preview generation didn't finish. Scroll up for the details.
 echo ------------------------------------------------------------
 echo.
 pause

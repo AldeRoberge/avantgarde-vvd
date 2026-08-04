@@ -15,6 +15,8 @@ Deux familles sources sont prises en charge :
 
 ![Adventor SlashV](images/demo_adventor.png)
 
+![AvantGarde vs Adventor](images/demo_compare.png)
+
 ## Ce que ça fait
 
 Dans les polices d'origine, les deux bras du **V** sont en diagonale. Cet outil
@@ -78,7 +80,7 @@ python scripts/make_font.py avantgarde   # AvantGarde seulement
 python scripts/make_font.py adventor     # Adventor seulement
 ```
 
-Sortie très détaillée par défaut (DEBUG). Mode court : `-q`.
+Sortie claire par défaut (info). Détails de debug : `-v` / `--verbose`.
 Inclinaison : `--angle 8`.
 
 ### Installation sous Windows
@@ -93,6 +95,7 @@ powershell -ExecutionPolicy Bypass -File scripts/install_fonts.ps1 -Family Adven
 ```bash
 python scripts/demo_avant_garde.py
 python scripts/demo_adventor.py
+python scripts/demo_compare.py        # AvantGarde vs Adventor side by side
 python scripts/preview.py
 python scripts/angle_options.py
 ```

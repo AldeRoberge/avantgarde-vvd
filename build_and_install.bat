@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ============================================================
-echo  avantgarde-vvd  -  build + install (one click)
+echo  SlashV - build and install (one click)
 echo ============================================================
 echo.
 
@@ -16,17 +16,16 @@ if errorlevel 1 goto :fail
 
 echo.
 echo ============================================================
-echo  Done. Families installed:
-echo    - AvantGarde SlashV
-echo    - Adventor SlashV
-echo  Restart Word / Illustrator / etc. if they were open.
+echo  You're all set.
+echo    Families: AvantGarde SlashV, Adventor SlashV
+echo  Restart Word / Illustrator / etc. if they were already open.
 echo ============================================================
 goto :done
 
 :fail
 echo.
 echo ============================================================
-echo  FAILED. Scroll up for the error logs.
+echo  Something went wrong. Scroll up for the notes, then try again.
 echo ============================================================
 echo.
 pause

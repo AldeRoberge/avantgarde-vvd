@@ -3,32 +3,32 @@ setlocal
 cd /d "%~dp0"
 
 echo ============================================================
-echo  avantgarde-vvd  -  build SlashV fonts
+echo  SlashV - build fonts
 echo ============================================================
 echo.
 
 where python >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] python not found on PATH.
-    echo Install Python 3.10+ and check "Add python.exe to PATH".
+    echo Oops - Python was not found on your PATH.
+    echo Install Python 3.10+ and tick "Add python.exe to PATH".
     goto :fail
 )
 
-echo Running: python scripts\make_font.py
+echo Starting the build. Detailed progress will scroll below...
 echo.
 python scripts\make_font.py
 if errorlevel 1 goto :fail
 
 echo.
 echo ------------------------------------------------------------
-echo  Build OK. Fonts are in fonts\
+echo  All good - fonts are ready in the fonts\ folder.
 echo ------------------------------------------------------------
 goto :done
 
 :fail
 echo.
 echo ------------------------------------------------------------
-echo  Build FAILED. Scroll up for details.
+echo  The build didn't finish. Scroll up for the friendly error notes.
 echo ------------------------------------------------------------
 exit /b 1
 

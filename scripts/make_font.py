@@ -21,7 +21,7 @@ from fontTools.ttLib import TTFont, newTable
 from fontTools.ttLib.tables import ttProgram
 from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates
 
-from logutil import log_path, setup_logging
+from logutil import log_path, set_verbose, setup_logging
 
 log = setup_logging("make_font")
 
@@ -107,20 +107,25 @@ def resolve_source(filename: str, family: Optional[Family] = None) -> str:
         if SYSTEM_FONTS:
             candidates.append(("system", os.path.join(SYSTEM_FONTS, filename)))
 
-    log.debug("resolve_source(%r, family=%s)", filename, getattr(family, "key", None))
+    log.debug("Looking for source font %r (family=%s).", filename, getattr(family, "key", None))
     for label, path in candidates:
         exists = os.path.isfile(path)
-        log.debug("  try %-12s %s  exists=%s", label, path, exists)
+        log.debug("  Checking %s: %s (%s)", label, path, "found" if exists else "not found")
         if exists:
             if label.startswith("system"):
-                log.warning("source %s not in source/; using %s", filename, path)
+                log.warning(
+                    "Couldn't find %s in the project's source folder, "
+                    "so I'm using the copy installed on Windows: %s",
+                    filename,
+                    path,
+                )
             else:
-                log.info("source %s -> %s", filename, path)
+                log.info("Using source file %s from %s.", filename, path)
             return path
 
-    log.error("source font NOT FOUND: %s", filename)
+    log.error("I couldn't find the source font %s anywhere.", filename)
     for label, path in candidates:
-        log.error("  looked [%s]: %s", label, path)
+        log.error("  Looked in [%s]: %s", label, path)
     raise FileNotFoundError(
         f"Source font not found: {filename}\n"
         + "\n".join(f"  tried: {p}" for _, p in candidates)
@@ -128,45 +133,104 @@ def resolve_source(filename: str, family: Optional[Family] = None) -> str:
 
 
 def ensure_truetype(font: TTFont) -> None:
-    """Convert a CFF/OTF font in-place to a TrueType (glyf) font if needed."""
+    """Convert a CFF/OTF font in-place to a TrueType (glyf) font if needed.
+
+    Follows fontTools' official otf2ttf recipe so Windows accepts the result
+    (proper maxp v1.0, post table, glyf.compile, hmtx xMin sync).
+    """
     if "glyf" in font and "CFF " not in font:
-        log.debug("font already TrueType (glyf present)")
+        log.debug("This font is already TrueType - no conversion needed.")
         return
     if "CFF " not in font and "CFF2" not in font:
-        log.error("font has neither glyf nor CFF outlines; tables=%s", sorted(font.keys()))
+        log.error(
+            "This font doesn't have outlines I know how to edit "
+            "(need TrueType glyf or CFF). Tables present: %s",
+            sorted(font.keys()),
+        )
         raise ValueError("Unsupported font format (no glyf/CFF)")
 
-    log.info("converting CFF outlines -> TrueType (glyf)...")
-    gs = font.getGlyphSet()
-    order = font.getGlyphOrder()
-    font["loca"] = newTable("loca")
-    font["glyf"] = newTable("glyf")
-    font["glyf"].glyphs = {}
-    font["glyf"].glyphOrder = order
+    log.info(
+        "This font uses PostScript (CFF) outlines. "
+        "Converting them to TrueType so Windows will accept the file..."
+    )
 
-    converted = 0
-    for name in order:
-        pen = TTGlyphPen(None)
-        # reverse_direction: CFF and TT winding conventions differ.
-        gs[name].draw(Cu2QuPen(pen, max_err=1.0, reverse_direction=True))
-        font["glyf"][name] = pen.glyph()
-        converted += 1
+    glyph_order = font.getGlyphOrder()
+    glyph_set = font.getGlyphSet()
+
+    font["loca"] = newTable("loca")
+    font["glyf"] = glyf = newTable("glyf")
+    glyf.glyphOrder = glyph_order
+    glyf.glyphs = {}
+
+    # Pass glyph_set into TTGlyphPen so composite glyphs resolve correctly.
+    for name in glyph_order:
+        tt_pen = TTGlyphPen(glyph_set)
+        glyph_set[name].draw(Cu2QuPen(tt_pen, max_err=1.0, reverse_direction=True))
+        glyf.glyphs[name] = tt_pen.glyph()
 
     del font["CFF "]
     if "CFF2" in font:
         del font["CFF2"]
     if "VORG" in font:
         del font["VORG"]
+
+    glyf.compile(font)
+
+    # Sync left sidebearings with the new quadratic outlines.
+    hmtx = font["hmtx"]
+    for glyph_name, glyph in glyf.glyphs.items():
+        if hasattr(glyph, "xMin"):
+            aw, _ = hmtx[glyph_name]
+            hmtx[glyph_name] = (aw, glyph.xMin)
+
+    # CFF fonts ship maxp v0.5; TrueType needs the full v1.0 maxp table.
+    font["maxp"] = maxp = newTable("maxp")
+    maxp.tableVersion = 0x00010000
+    maxp.numGlyphs = len(glyph_order)
+    maxp.maxZones = 1
+    maxp.maxTwilightPoints = 0
+    maxp.maxStorage = 0
+    maxp.maxFunctionDefs = 0
+    maxp.maxInstructionDefs = 0
+    maxp.maxStackElements = 0
+    maxp.maxSizeOfInstructions = 0
+    maxp.maxComponentElements = max(
+        (len(g.components) if hasattr(g, "components") else 0)
+        for g in glyf.glyphs.values()
+    )
+    maxp.compile(font)
+
+    post = font["post"]
+    post.formatType = 2.0
+    post.extraNames = []
+    post.mapping = {}
+    post.glyphOrder = glyph_order
+    try:
+        post.compile(font)
+    except OverflowError:
+        log.warning(
+            "Glyph names are too long for the 'post' table - "
+            "keeping the font usable without them (post format 3)."
+        )
+        post.formatType = 3.0
+
     font.sfntVersion = "\x00\x01\x00\x00"
-    log.info("converted %d glyphs to quadratic TrueType outlines", converted)
+    log.info(
+        "Converted %d glyphs to TrueType (maxp v1.0). Ready to edit the V.",
+        len(glyph_order),
+    )
 
 
 def analyze_V(points):
     """Identify the 7 structural points of the V outline by geometry."""
-    log.debug("analyze_V: %d raw points: %s", len(points), points)
+    log.debug("Reading the V outline (%d points): %s", len(points), points)
 
     if len(points) != 7:
-        log.error("analyze_V expected 7 points, got %d: %s", len(points), points)
+        log.error(
+            "I expected the V to be a simple 7-point outline, but found %d points: %s",
+            len(points),
+            points,
+        )
         raise ValueError(f"V glyph must have 7 outline points, got {len(points)}")
 
     ytop = max(y for _, y in points)
@@ -176,9 +240,11 @@ def analyze_V(points):
     bottom = sorted([p for p in points if p[1] == ybot])
     middle = [p for p in points if p[1] not in (ytop, ybot)]
 
-    log.debug("  ytop=%s ybot=%s", ytop, ybot)
-    log.debug("  top (%d)=%s bottom (%d)=%s middle (%d)=%s",
-              len(top), top, len(bottom), bottom, len(middle), middle)
+    log.debug("  Top of letter y=%s, baseline y=%s", ytop, ybot)
+    log.debug(
+        "  Top corners (%d): %s | Bottom (%d): %s | Notch (%d): %s",
+        len(top), top, len(bottom), bottom, len(middle), middle,
+    )
 
     if not (len(top) == 4 and len(bottom) == 2 and len(middle) == 1):
         raise AssertionError(
@@ -197,7 +263,7 @@ def analyze_V(points):
         "ybot": ybot,
     }
     log.debug(
-        "  classified TLo=%s TLi=%s notch=%s TRi=%s TRo=%s tip=%s",
+        "  Mapped corners - left top %s/%s, notch %s, right top %s/%s, tip %s",
         result["TLo"], result["TLi"], result["notch"],
         result["TRi"], result["TRo"], result["tip"],
     )
@@ -212,7 +278,10 @@ def measure_stem_width(glyf, gname):
     ys = [y for _, y in pts]
     y = (max(ys) + min(ys)) / 2.0
 
-    log.debug("measure_stem_width(%r): %d pts, y-scan=%.1f", gname, len(pts), y)
+    log.debug(
+        "Measuring stem width of %r across the middle (y=%.1f, %d outline points).",
+        gname, y, len(pts),
+    )
 
     xs = []
     start = 0
@@ -233,12 +302,12 @@ def measure_stem_width(glyf, gname):
         raise ValueError(f"Could not measure stem width of glyph {gname!r} (hits={xs})")
 
     width = max(xs) - min(xs)
-    log.debug("  hits=%s -> width=%.3f", sorted(xs), width)
+    log.debug("  Crossed edges at x=%s -> stem width %.1f.", sorted(xs), width)
     return width
 
 
 def rebuild_V(font: TTFont, extra_angle: float):
-    log.info("--- rebuild V glyph (extra_angle=%s°) ---", extra_angle)
+    log.info("Rewriting the capital V (adding %s° of slant on the right stroke)...", extra_angle)
 
     glyf = font["glyf"]
     hmtx = font["hmtx"]
@@ -251,15 +320,15 @@ def rebuild_V(font: TTFont, extra_angle: float):
     gname = cmap[ord("V")]
     i_name = cmap[ord("I")]
     h_name = cmap[ord("H")]
-    log.debug("cmap: V=%r I=%r H=%r", gname, i_name, h_name)
+    log.debug("Glyph names inside the font: V=%r, I=%r, H=%r", gname, i_name, h_name)
 
     g = glyf[gname]
     try:
         g.recalcBounds(glyf)
     except Exception:
-        log.debug("recalcBounds on original V skipped/failed", exc_info=True)
+        log.debug("Couldn't refresh the original V bounds (that's usually fine).", exc_info=True)
     log.debug(
-        "original V: contours=%s bounds=(%s,%s)-(%s,%s)",
+        "Original V has %s contour(s), bounds (%s,%s) to (%s,%s).",
         g.numberOfContours,
         getattr(g, "xMin", "?"),
         getattr(g, "yMin", "?"),
@@ -268,15 +337,18 @@ def rebuild_V(font: TTFont, extra_angle: float):
     )
 
     old_aw, old_lsb = hmtx[gname]
-    log.debug("original V hmtx: aw=%s lsb=%s", old_aw, old_lsb)
+    log.debug("Original V spacing: advance width %s, left sidebearing %s.", old_aw, old_lsb)
 
     coords, endPts, flags = g.getCoordinates(glyf)
     pts = [tuple(p) for p in coords]
-    log.info("original V points: %s", pts)
-    log.debug("endPts=%s flags=%s", endPts, list(flags))
+    log.info("Original V outline points: %s", pts)
+    log.debug("Contour end-points=%s, on-curve flags=%s", endPts, list(flags))
 
     if g.numberOfContours != 1:
-        log.warning("original V has %d contours (expected 1)", g.numberOfContours)
+        log.warning(
+            "This V has %d contours; I usually expect just one. I'll keep going anyway.",
+            g.numberOfContours,
+        )
 
     P = analyze_V(pts)
     ytop, ybot = P["ytop"], P["ybot"]
@@ -286,23 +358,29 @@ def rebuild_V(font: TTFont, extra_angle: float):
         raise ValueError(f"Invalid V height: ytop={ytop} ybot={ybot}")
 
     W = round(measure_stem_width(glyf, i_name))
-    log.info("stem width from 'I': %s font units", W)
+    log.info("Matching the vertical stem to the letter I - width is %s units.", W)
 
     orig_left_top = P["TLi"][0] - P["TLo"][0]
     orig_right_top = P["TRo"][0] - P["TRi"][0]
-    log.debug("original top widths left=%s right=%s (using I=%s)", orig_left_top, orig_right_top, W)
+    log.debug(
+        "For reference, the old V tops were %s (left) and %s (right); we use %s instead.",
+        orig_left_top, orig_right_top, W,
+    )
 
     _, h_lsb = hmtx[h_name]
     a = h_lsb
     stem_inner = a + W
-    log.info("stem placement: outer x=%s (H lsb), inner x=%s", a, stem_inner)
+    log.info(
+        "Placing the stem like H: left edge at x=%s, right edge at x=%s.",
+        a, stem_inner,
+    )
 
     theta = math.atan2(P["TRo"][0] - P["tip"][0], height)
     theta2 = theta + math.radians(extra_angle)
     tan2 = math.tan(theta2)
     horiz2 = W
     log.info(
-        "right stroke angle: %.2f° -> %.2f° (EXTRA_ANGLE=%s)",
+        "Right stroke lean: %.1f° originally, now %.1f° (+%s°).",
         math.degrees(theta), math.degrees(theta2), extra_angle,
     )
 
@@ -323,17 +401,21 @@ def rebuild_V(font: TTFont, extra_angle: float):
         "stem top outer", "stem top inner", "notch",
         "right top inner", "right top outer", "tip", "stem bottom outer",
     ]
-    log.info("new V coordinates:")
+    log.info("Here's the new V outline:")
     for label, pt in zip(labels, new_coords):
-        log.info("  %-18s %s", label, pt)
+        log.info("  - %-18s %s", label, pt)
 
     stem_w = new_coords[1][0] - new_coords[0][0]
     right_w = new_coords[4][0] - new_coords[3][0]
     bottom_w = new_coords[5][0] - new_coords[6][0]
-    log.info("metrics check: stem_top=%s right_top=%s bottom=%s", stem_w, right_w, bottom_w)
+    log.info(
+        "Width check - stem top %s, right top %s, bottom %s (all should match).",
+        stem_w, right_w, bottom_w,
+    )
     if not (stem_w == right_w == bottom_w == W):
         log.warning(
-            "width mismatch! expected %s, got stem=%s right=%s bottom=%s",
+            "Those widths don't all match %s (got stem=%s, right=%s, bottom=%s). "
+            "Worth a visual check.",
             W, stem_w, right_w, bottom_w,
         )
 
@@ -350,7 +432,10 @@ def rebuild_V(font: TTFont, extra_angle: float):
     rsb = old_aw - P["TRo"][0]
     new_aw = g.xMax + rsb
     hmtx[gname] = (new_aw, g.xMin)
-    log.info("hmtx: advance %s -> %s (rsb=%s, lsb=%s)", old_aw, new_aw, rsb, g.xMin)
+    log.info(
+        "Updated spacing: advance width %s -> %s (kept the old right sidebearing of %s).",
+        old_aw, new_aw, rsb,
+    )
 
     return gname, math.degrees(theta), math.degrees(theta2)
 
@@ -363,14 +448,14 @@ def rename_font(font: TTFont, family_name: str, style: str):
     old_family = name.getDebugName(1)
     old_full = name.getDebugName(4)
     log.info(
-        "rename: %r / %r  ->  family=%r style=%r full=%r",
-        old_family, old_full, family_name, style, full,
+        "Renaming font from %r (%r) to family %r, style %r.",
+        old_family, old_full, family_name, style,
     )
 
     def setn(nameID, value):
         name.setName(value, nameID, 3, 1, 0x409)
         name.setName(value, nameID, 1, 0, 0)
-        log.debug("  nameID %2d = %r", nameID, value)
+        log.debug("  Name table entry %d set to %r", nameID, value)
 
     setn(1, family_name)
     setn(2, style)
@@ -391,21 +476,21 @@ def build(
 ):
     """Build one SlashV style. *family* is preferred; *new_family* overrides the name."""
     fam_name = new_family or (family.new_family if family else "SlashV")
-    log.info("========== build %s (%s) / family=%s ==========", src, style, fam_name)
+    log.info("-- Building %s (%s) as '%s' --", src, style, fam_name)
 
     src_path = resolve_source(src, family)
-    log_path(log, "input", src_path, level=20)
+    log_path(log, "Input font", src_path, level=20)
 
     try:
         font = TTFont(src_path)
     except Exception:
-        log.exception("failed to open font: %s", src_path)
+        log.exception("Couldn't open the font file at %s", src_path)
         raise
 
-    log.debug("tables: %s", sorted(font.keys()))
+    log.debug("Font tables present: %s", sorted(font.keys()))
     log.info(
-        "unitsPerEm=%s  italicAngle=%s  sfntVersion=%r",
-        font["head"].unitsPerEm, font["post"].italicAngle, font.sfntVersion,
+        "Font metrics: %s units per em, italic angle %s°.",
+        font["head"].unitsPerEm, font["post"].italicAngle,
     )
 
     ensure_truetype(font)
@@ -414,7 +499,7 @@ def build(
 
     for tag in ("hdmx", "LTSH", "VDMX"):
         if tag in font:
-            log.debug("dropping stale metrics table %r", tag)
+            log.debug("Removing outdated metrics table %r (it no longer matches).", tag)
             del font[tag]
 
     rename_font(font, fam_name, style)
@@ -426,17 +511,21 @@ def build(
     try:
         font.save(out_path)
     except Exception:
-        log.exception("failed to save font: %s", out_path)
+        log.exception("Couldn't save the new font to %s", out_path)
         raise
 
-    log_path(log, "output", out_path, level=20)
-    log.info("done %s: V %.2f° -> %.2f°  ->  %s", style, old_deg, new_deg, out_path)
+    log_path(log, "The new font", out_path, level=20)
+    log.info(
+        "Finished %s - V leans %.1f deg -> %.1f deg. Saved successfully.",
+        style, old_deg, new_deg,
+    )
     return gname, old_deg, new_deg
 
 
 def build_family(family: Family, extra_angle: float = EXTRA_ANGLE) -> List[Tuple[str, Exception]]:
-    log.info("######## family %s (%s) ########", family.key, family.new_family)
-    log_path(log, "source dir", family_source_dir(family))
+    log.info("")
+    log.info("=== Starting family: %s (%s) ===", family.new_family, family.key)
+    log_path(log, "Source folder", family_source_dir(family))
     errors = []
     for variant in family.variants:
         out = os.path.join(OUT_DIR, variant.out_base + ".ttf")
@@ -449,8 +538,11 @@ def build_family(family: Family, extra_angle: float = EXTRA_ANGLE) -> List[Tuple
                 family=family,
             )
         except Exception as exc:
-            log.error("FAILED %s / %s: %s", family.key, variant.style, exc)
-            log.debug("traceback:\n%s", traceback.format_exc())
+            log.error(
+                "Sorry - %s / %s didn't build. Reason: %s",
+                family.key, variant.style, exc,
+            )
+            log.debug("Full traceback:\n%s", traceback.format_exc())
             errors.append((f"{family.key}:{variant.source_file}", exc))
     return errors
 
@@ -465,7 +557,12 @@ def main(argv=None):
         default=None,
         help="Which families to build: avantgarde, adventor (default: all).",
     )
-    parser.add_argument("-q", "--quiet", action="store_true", help="INFO only (default DEBUG).")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Show detail (debug) logs.",
+    )
     parser.add_argument(
         "--angle",
         type=float,
@@ -474,21 +571,25 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    if args.quiet:
-        log.setLevel(20)
-        for h in log.handlers:
-            h.setLevel(20)
+    set_verbose(log, args.verbose)
 
     keys = args.families if args.families else list(FAMILIES.keys())
     unknown = [k for k in keys if k not in FAMILIES]
     if unknown:
-        log.error("unknown family key(s): %s  (known: %s)", unknown, sorted(FAMILIES))
+        log.error(
+            "I don't know the family name(s) %s. Try one of: %s",
+            unknown, ", ".join(sorted(FAMILIES)),
+        )
         return 2
-    log.info("avantgarde-vvd / make_font.py")
-    log.info("ROOT=%s", ROOT)
-    log_path(log, "SOURCE_ROOT", SOURCE_ROOT)
-    log_path(log, "OUT_DIR", OUT_DIR)
-    log.info("families=%s  angle=%s", keys, args.angle)
+
+    log.info("Welcome - building SlashV fonts.")
+    log.info("Project folder: %s", ROOT)
+    log_path(log, "Source root", SOURCE_ROOT)
+    log_path(log, "Output folder", OUT_DIR)
+    log.info(
+        "I'll build: %s. Right-stroke boost: +%s°.",
+        ", ".join(keys), args.angle,
+    )
 
     os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -496,14 +597,17 @@ def main(argv=None):
     for key in keys:
         all_errors.extend(build_family(FAMILIES[key], args.angle))
 
-    log.info("========== summary ==========")
+    log.info("")
+    log.info("-- Summary --")
     if all_errors:
-        log.error("%d build(s) FAILED:", len(all_errors))
+        log.error("%d style(s) couldn't be built:", len(all_errors))
         for label, exc in all_errors:
-            log.error("  %s: %s", label, exc)
+            log.error("  - %s - %s", label, exc)
+        log.error("Scroll up for details. Fix the issue and run again when you're ready.")
         return 1
 
-    log.info("all requested families built OK -> %s", OUT_DIR)
+    log.info("All done - every requested style is ready in %s", OUT_DIR)
+    log.info("Next tip: run install.bat (or install_fonts.ps1) to put them on Windows.")
     return 0
 
 

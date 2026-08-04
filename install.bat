@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ============================================================
-echo  avantgarde-vvd  -  install SlashV fonts (current user)
+echo  SlashV - install fonts (this Windows user)
 echo ============================================================
 echo.
 
@@ -12,15 +12,15 @@ if errorlevel 1 goto :fail
 
 echo.
 echo ------------------------------------------------------------
-echo  Install OK.
-echo  Restart apps that already had the font loaded.
+echo  Install finished.
+echo  Restart any app that already had the fonts open.
 echo ------------------------------------------------------------
 goto :done
 
 :fail
 echo.
 echo ------------------------------------------------------------
-echo  Install FAILED. Scroll up for details.
+echo  Install didn't complete. Scroll up for the details.
 echo ------------------------------------------------------------
 exit /b 1
 
