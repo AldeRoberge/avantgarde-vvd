@@ -1,6 +1,4 @@
-# avantgarde-vvd
-
-Outil Python qui réécrit le **V** majuscule pour suivre le logotype de la
+Outil Python qui modifie le **V** pour suivre le logotype de la
 Ville de Val-d'Or : un trait gauche **vertical** joint à une diagonale
 inclinée vers la droite.
 
