@@ -607,7 +607,7 @@ def main(argv=None):
         return 1
 
     log.info("All done - every requested style is ready in %s", OUT_DIR)
-    log.info("Next tip: run install.bat (or install_fonts.ps1) to put them on Windows.")
+    log.info("Next tip: run run.bat (or install_fonts.ps1) to put them on Windows.")
     return 0
 
 

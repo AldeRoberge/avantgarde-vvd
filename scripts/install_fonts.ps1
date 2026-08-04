@@ -40,7 +40,7 @@ Write-Log -Level INFO -Message ("Looking for built fonts in: {0}" -f $outDir)
 Write-Log -Level INFO -Message ("They will be installed to: {0}" -f $fontDir)
 
 if (-not (Test-Path $outDir)) {
-    Write-Log -Level ERROR -Message "I can't find the fonts/ folder. Build first with build.bat (or: python scripts/make_font.py)."
+    Write-Log -Level ERROR -Message "I can't find the fonts/ folder. Build first with run.bat (or: python scripts/make_font.py)."
     throw "Missing fonts directory"
 }
 
@@ -100,7 +100,7 @@ foreach ($f in $fonts) {
     Write-Log -Level INFO -Message ("-- Installing {0} --" -f $f.File)
     $src = Join-Path $outDir $f.File
     if (-not (Test-Path $src)) {
-        Write-Log -Level ERROR -Message ("Missing {0}. Build fonts first (build.bat), then try again." -f $src)
+        Write-Log -Level ERROR -Message ("Missing {0}. Build fonts first (run.bat), then try again." -f $src)
         $fail++
         continue
     }

@@ -11,9 +11,9 @@ Deux familles sources sont prises en charge :
 | **AvantGarde Bk BT** | AvantGarde SlashV | propriétaire (Bitstream / Monotype) |
 | **TeX Gyre Adventor** | Adventor SlashV | GUST Font License (LPPL) |
 
-![AvantGarde SlashV](images/demo_avant_garde.png)
-
-![Adventor SlashV](images/demo_adventor.png)
+| AvantGarde SlashV | Adventor SlashV |
+| ----------------- | --------------- |
+| ![AvantGarde SlashV](images/demo_avant_garde.png) | ![Adventor SlashV](images/demo_adventor.png) |
 
 ![AvantGarde vs Adventor](images/demo_compare.png)
 
@@ -63,14 +63,8 @@ Windows.
 
 ## Utilisation
 
-Double-clic Windows (à la racine du dépôt) :
-
-| Fichier | Action |
-| ------- | ------ |
-| `build_and_install.bat` | **Un clic** : génère puis installe les deux familles |
-| `build.bat` | Génère les TTF dans `fonts/` |
-| `install.bat` | Installe les TTF pour l'utilisateur Windows courant |
-| `make_demos.bat` | Régénère les PNG dans `images/` |
+Double-clic **`run.bat`** à la racine : génère les polices, les installe
+pour l'utilisateur Windows courant, puis régénère les aperçus dans `images/`.
 
 En ligne de commande :
 
